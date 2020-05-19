@@ -51,6 +51,12 @@ const undoRedoTree: UndoRedoTreeStateType = {
   tree: { id: 0, input: "", childrens: [], parentId: undefined },
 };
 
+/**
+ * 差し込まれる対象に対して探索を行い、差込Idと一致するNodeのchildrenにnodeを差し込む
+ * @param tree 差込まれる対象
+ * @param targetId 差込先Id
+ * @param node 差し込むもの
+ */
 const insertNodeToTree = (
   tree: UndoRedoTreeType,
   targetId: number,
@@ -84,14 +90,13 @@ function reducer(
 }
 
 const App = () => {
-  const [input, setInput] = React.useReducer(reducer, undoRedoTree);
-  const [id, setId] = React.useState(0);
-  // stack
-  const [inputEvents, setInputEvent] = React.useState<InputEventType>();
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {};
 
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-  };
+  React.useEffect(() => {
+    // キーイベントの監視を登録
+    // ctrl + z => undo
+    // ctrl + shift + z = redo
+  }, []);
 
   return (
     <div>
