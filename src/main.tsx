@@ -1,14 +1,22 @@
 import * as React from "react";
 import ReactDOM from "react-dom";
 import "./reset.css";
+import { UndoRedoTreeStateType, UndoRedoTreeType } from "./types";
+import { insertNodeToTree, findParentNode } from "./helper";
 
-const TreeView = () => {
-  return <div>tree</div>;
+const TreeView = ({ treeState }: { treeState: UndoRedoTreeStateType }) => {
+  return <div>{JSON.stringify(treeState)}</div>;
 };
 
-const INPUT_ACTION = "INPUT" as const;
-const REDO = "REDO" as const;
-const UNDO = "UNDO" as const;
+const undoRedoTree: UndoRedoTreeStateType = {
+  currentNode: { id: 0, input: "", childrens: [], parentId: undefined },
+  previousNode: { id: 0, input: "", childrens: [], parentId: undefined },
+  tree: { id: 0, input: "", childrens: [], parentId: undefined },
+};
+
+const INPUT_ACTION_TYPE = "INPUT" as const;
+const REDO_ACTION_TYPE = "REDO" as const;
+const UNDO_ACTION_TYPE = "UNDO" as const;
 
 type ActionType =
   | ReturnType<typeof inputAction>
@@ -17,91 +25,102 @@ type ActionType =
 
 const inputAction = (input: string) => {
   return {
-    type: INPUT_ACTION,
+    type: INPUT_ACTION_TYPE,
     payload: input,
   };
 };
 
-const redoAction = (input: string) => {
+const redoAction = () => {
   return {
-    type: REDO,
+    type: REDO_ACTION_TYPE,
   };
 };
 
-const uddoAction = (input: string) => {
+const uddoAction = () => {
   return {
-    type: UNDO,
+    type: UNDO_ACTION_TYPE,
   };
 };
-
-type UndoRedoTreeType = {
-  id: number;
-  input: string;
-  childrens: UndoRedoTreeType[];
-  parentId?: number;
-};
-
-type UndoRedoTreeStateType = {
-  currentId: number;
-  tree: UndoRedoTreeType;
-};
-
-const undoRedoTree: UndoRedoTreeStateType = {
-  currentId: 0,
-  tree: { id: 0, input: "", childrens: [], parentId: undefined },
-};
-
-/**
- * 差し込まれる対象に対して探索を行い、差込Idと一致するNodeのchildrenにnodeを差し込む
- * @param tree 差込まれる対象
- * @param targetId 差込先Id
- * @param node 差し込むもの
- */
-const insertNodeToTree = (
-  tree: UndoRedoTreeType,
-  targetId: number,
-  node: UndoRedoTreeType
-) => {};
 
 function reducer(
   state: UndoRedoTreeStateType,
   action: ActionType
 ): UndoRedoTreeStateType {
   switch (action.type) {
-    case "INPUT":
+    case INPUT_ACTION_TYPE:
       // currentId の childrenに UndoRedoTree を差し込み、そのidをcurrentIdにセットする
-      const newId = state.currentId + 1;
+      const newId = state.currentNode.id + 1;
       const node: UndoRedoTreeType = {
         id: newId,
         input: action.payload,
         childrens: [],
-        parentId: state.currentId,
+        parentId: state.currentNode.id,
       };
       const treeCopy = { ...state.tree };
-
-      return { ...state, tree: [] };
-    case "REDO":
-      return { count: state.count - 1 };
-    case "UNDO":
-      return { count: state.count - 1 };
+      // treeCopy にinsert済nodeが書き込まれる
+      insertNodeToTree(treeCopy, state.currentNode.id, node);
+      console.log("node", node);
+      return {
+        ...state,
+        currentNode: node,
+        previousNode: state.currentNode,
+        tree: treeCopy,
+      };
+    case UNDO_ACTION_TYPE:
+      const currentNodeParentId = findParentNode(
+        state.tree,
+        state.currentNode.id
+      );
+      return {
+        ...state,
+        currentNode: currentNodeParentId,
+        previousNode: state.currentNode,
+      };
+    case REDO_ACTION_TYPE:
+      return {
+        ...state,
+        currentNode: state.previousNode,
+        previousNode: state.currentNode,
+      };
     default:
       throw new Error();
   }
 }
 
 const App = () => {
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {};
+  const [state, dispatch] = React.useReducer(reducer, undoRedoTree);
+
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log("e.target.value", e.target.value);
+    dispatch(inputAction(e.target.value));
+  };
+
+  const handleUserKeyPress = React.useCallback((event) => {
+    const { key, keyCode } = event;
+
+    // スペース
+    if (keyCode === 32) {
+      dispatch(redoAction());
+    }
+  }, []);
 
   React.useEffect(() => {
     // キーイベントの監視を登録
     // ctrl + z => undo
     // ctrl + shift + z = redo
+    window.addEventListener("keydown", handleUserKeyPress);
+    return () => {
+      window.removeEventListener("keydown", handleUserKeyPress);
+    };
   }, []);
 
   return (
     <div>
-      <textarea onChange={handleInput}></textarea>
-      <TreeView></TreeView>
+      <textarea
+        value={state.currentNode.input}
+        onChange={(e) => handleInput(e)}
+      ></textarea>
+      <TreeView treeState={state}></TreeView>
     </div>
   );
 };
