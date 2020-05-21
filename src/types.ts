@@ -6,6 +6,7 @@ export type UndoRedoTreeType = {
 };
 
 export type UndoRedoTreeStateType = {
+  idCounter: number;
   currentNode: UndoRedoTreeType;
   previousNode: UndoRedoTreeType;
   tree: UndoRedoTreeType;

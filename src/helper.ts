@@ -32,17 +32,20 @@ export const insertNodeToTree = (
   }
 };
 
-export const findParentNode = (tree: UndoRedoTreeType, targetId: number) => {
+export const findParentNode = (
+  tree: UndoRedoTreeType,
+  targetId: number
+): UndoRedoTreeType => {
   const stack: UndoRedoTreeType[] = [];
   stack.push(tree);
-  const mostParentId = stack[0];
+  const mostParent = stack[0];
   let res: UndoRedoTreeType;
   while (stack.length > 0) {
     const targetNode = stack.shift();
     if (targetNode) {
       targetNode.childrens.forEach((child) => {
         if (child.id === targetId) {
-          res = child || mostParentId;
+          res = targetNode || mostParent;
         } else {
           stack.push(child);
         }
@@ -53,5 +56,32 @@ export const findParentNode = (tree: UndoRedoTreeType, targetId: number) => {
       return res;
     }
   }
+  throw new Error("あるはず");
+};
+
+export const findChildNode = (
+  tree: UndoRedoTreeType,
+  targetId: number
+): UndoRedoTreeType => {
+  const stack: UndoRedoTreeType[] = [];
+  stack.push(tree);
+  let res: UndoRedoTreeType;
+  while (stack.length > 0) {
+    const targetNode = stack.shift();
+    if (targetNode) {
+      if (targetNode.id === targetId) {
+        res = targetNode.childrens[targetNode.childrens.length - 1];
+      }
+      targetNode.childrens.forEach((child) => {
+        stack.push(child);
+      });
+    }
+    // @ts-ignore
+    if (res) {
+      return res;
+    }
+  }
+  // @ts-ignore
+  console.log("res", res);
   throw new Error("あるはず");
 };
